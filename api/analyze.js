@@ -1,55 +1,52 @@
 export default async function handler(req, res) {
-  // 1. Allow POST requests (and basic GET checks for testing)
+  // Always handle non-POST or health check requests cleanly
   if (req.method !== 'POST') {
-    return res.status(200).json({ status: 'API endpoint is active. Send a POST request with transcript data.' });
+    return res.status(200).json({ message: "FlowSpeak API endpoint active. Use POST with transcript." });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY environment variable is missing in Vercel settings.' });
+    return res.status(500).json({ error: "GEMINI_API_KEY environment variable is not configured in Vercel." });
   }
 
-  // 2. Safely extract transcript from request body
-  let transcript = '';
+  // Safely parse body regardless of how Vercel/Fetch formats it
+  let transcript = "";
   try {
-    if (typeof req.body === 'string') {
-      const parsed = JSON.parse(req.body);
-      transcript = parsed.transcript || parsed.text || '';
-    } else if (req.body) {
-      transcript = req.body.transcript || req.body.text || '';
-    }
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    transcript = body.transcript || body.text || "";
   } catch (err) {
-    transcript = '';
+    transcript = "";
   }
 
-  if (!transcript || transcript.trim() === '') {
-    return res.status(400).json({ error: 'No transcript text provided in request body.' });
+  if (!transcript.trim()) {
+    return res.status(400).json({ error: "No transcript provided." });
   }
 
-  // 3. Define prompt AFTER transcript is validated
   const prompt = `
-    You are the FlowSpeak English Speech Coach. Analyze this spoken transcript from an English learner:
+    You are an expert English Speaking Coach for FlowSpeak.
+    Analyze this verbatim transcript spoken by an English learner:
     "${transcript}"
 
-    CRITICAL INSTRUCTION:
-    1. Provide integer scores from 0-100 (NO decimals).
-    2. In the "corrected" field, ALWAYS rewrite repetitive, conversational, awkward, or informal sentences into natural, polished, professional English. NEVER return an identical string if phrasing can be improved.
+    INSTRUCTION:
+    1. Provide whole rounded integer scores (0-100) for overall, fluency, grammar, vocabulary, pronunciation.
+    2. In "corrected", ALWAYS rewrite the sentence into a natural, polished, native English alternative.
+    3. NEVER return the exact same string in "corrected" if phrasing can sound more natural or concise.
 
-    Respond STRICTLY with valid JSON (no markdown block, no extra prose) matching this format:
+    Respond STRICTLY in JSON:
     {
       "overall": 88,
       "fluency": 85,
       "grammar": 88,
-      "vocabulary": 80,
+      "vocabulary": 82,
       "pronunciation": 84,
       "hesitations": 4,
-      "wpm": 130,
-      "fillers": ["like"],
+      "wpm": 120,
+      "fillers": [],
       "sentences": [
         {
-          "original": "exact original sentence from user transcript",
-          "corrected": "polished, natural native English version",
-          "suggestion": "Detailed explanation of why this rephrasing sounds clearer and more natural.",
+          "original": "exact spoken sentence",
+          "corrected": "polished native phrasing",
+          "suggestion": "Why this change makes the sentence sound more concise and professional.",
           "isGibberish": false,
           "needsCorrection": true,
           "completed": false
@@ -69,15 +66,15 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API Error (${response.status}): ${errText}`);
+      const errDetail = await response.text();
+      throw new Error(`Gemini API HTTP ${response.status}: ${errDetail}`);
     }
 
     const data = await response.json();
     const rawJsonText = data.candidates[0].content.parts[0].text;
     const aiContent = JSON.parse(rawJsonText);
 
-    // Ensure integer scores
+    // Round scores to prevent long decimals
     aiContent.overall = Math.round(aiContent.overall || 85);
     aiContent.fluency = Math.round(aiContent.fluency || 85);
     aiContent.grammar = Math.round(aiContent.grammar || 85);
