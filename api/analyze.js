@@ -1,70 +1,52 @@
 export default async function handler(req, res) {
-  // CORS Headers
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(200).json({ status: 'FlowSpeak API is active.' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(200).json({ status: 'FlowSpeak API Active' });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY environment variable is missing on Vercel.' });
   }
 
-  // Helper to read body stream safely
-  const getBody = (req) => {
-    return new Promise((resolve) => {
-      if (req.body && typeof req.body === 'object') {
-        return resolve(req.body);
-      }
-      let data = '';
-      req.on('data', chunk => { data += chunk; });
-      req.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          resolve({});
-        }
-      });
-    });
-  };
-
-  const body = await getBody(req);
-  const transcript = body.transcript || body.text || '';
+  // Parse body safely
+  let transcript = '';
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    transcript = body.transcript || body.text || '';
+  } catch (e) {
+    transcript = '';
+  }
 
   if (!transcript.trim()) {
     return res.status(400).json({ error: 'No transcript text provided.' });
   }
 
   const prompt = `
-    You are an expert English Speaking Coach for FlowSpeak.
-    Analyze this verbatim transcript spoken by an English learner:
+    You are an expert English Speaking Coach. Analyze this spoken transcript from an English learner:
     "${transcript}"
 
-    CRITICAL INSTRUCTION:
-    In the "corrected" field, ALWAYS rewrite repetitive, conversational, awkward, or informal sentences into natural, polished, professional English. NEVER return an identical string.
+    CRITICAL REWRITE REQUIREMENT:
+    In "corrected", ALWAYS rewrite, rephrase, or clean up the user's speech into a natural, professional, polished native sentence. Even if the input is jumbled or broken speech, convert it into clear, professional English. NEVER return an identical string.
 
-    Respond STRICTLY with valid JSON (no markdown block, no extra prose):
+    Respond STRICTLY in JSON matching this structure:
     {
       "overall": 88,
       "fluency": 85,
       "grammar": 88,
-      "vocabulary": 82,
+      "vocabulary": 85,
       "pronunciation": 84,
-      "hesitations": 4,
-      "wpm": 120,
+      "hesitations": 2,
+      "wpm": 130,
       "fillers": [],
       "sentences": [
         {
-          "original": "exact spoken sentence from transcript",
-          "corrected": "polished native English rephrasing",
-          "suggestion": "Why this rephrasing sounds more professional and concise.",
+          "original": "${transcript.replace(/"/g, '\\"')}",
+          "corrected": "A professional, clear native English rephrasing of what the speaker was attempting to say.",
+          "suggestion": "Rephrased messy spoken transcript into clear, professional structure.",
           "isGibberish": false,
           "needsCorrection": true,
           "completed": false
@@ -74,17 +56,22 @@ export default async function handler(req, res) {
   `;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
+        generationConfig: { 
+          responseMimeType: "application/json",
+          temperature: 0.2
+        }
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
+      console.error("Gemini Error:", errText);
       return res.status(response.status).json({ error: `Gemini API Error: ${errText}` });
     }
 
@@ -92,7 +79,6 @@ export default async function handler(req, res) {
     const rawJsonText = data.candidates[0].content.parts[0].text;
     const aiContent = JSON.parse(rawJsonText);
 
-    // Clean score rounding
     aiContent.overall = Math.round(aiContent.overall || 85);
     aiContent.fluency = Math.round(aiContent.fluency || 85);
     aiContent.grammar = Math.round(aiContent.grammar || 85);
@@ -102,6 +88,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(aiContent);
   } catch (error) {
+    console.error("Handler Error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
