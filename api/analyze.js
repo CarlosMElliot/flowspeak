@@ -55,40 +55,55 @@ export default async function handler(req, res) {
     }
   `;
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          responseMimeType: "application/json",
-          temperature: 0.2
-        }
-      })
-    });
+  // List of models to try sequentially in case Google sunsets or changes a model name
+  const candidateModels = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
+  ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Gemini Error:", errText);
-      return res.status(response.status).json({ error: `Gemini API Error: ${errText}` });
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            responseMimeType: "application/json",
+            temperature: 0.2
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        lastError = `[${model}] HTTP ${response.status}: ${errText}`;
+        // If it's a 404 (model not found), continue loop to try next model
+        if (response.status === 404) continue;
+        
+        return res.status(response.status).json({ error: `Gemini API Error: ${errText}` });
+      }
+
+      const data = await response.json();
+      const rawJsonText = data.candidates[0].content.parts[0].text;
+      const aiContent = JSON.parse(rawJsonText);
+
+      aiContent.overall = Math.round(aiContent.overall || 85);
+      aiContent.fluency = Math.round(aiContent.fluency || 85);
+      aiContent.grammar = Math.round(aiContent.grammar || 85);
+      aiContent.vocabulary = Math.round(aiContent.vocabulary || 85);
+      aiContent.pronunciation = Math.round(aiContent.pronunciation || 85);
+      aiContent.text = transcript;
+
+      return res.status(200).json(aiContent);
+    } catch (err) {
+      lastError = err.message;
     }
-
-    const data = await response.json();
-    const rawJsonText = data.candidates[0].content.parts[0].text;
-    const aiContent = JSON.parse(rawJsonText);
-
-    aiContent.overall = Math.round(aiContent.overall || 85);
-    aiContent.fluency = Math.round(aiContent.fluency || 85);
-    aiContent.grammar = Math.round(aiContent.grammar || 85);
-    aiContent.vocabulary = Math.round(aiContent.vocabulary || 85);
-    aiContent.pronunciation = Math.round(aiContent.pronunciation || 85);
-    aiContent.text = transcript;
-
-    return res.status(200).json(aiContent);
-  } catch (error) {
-    console.error("Handler Error:", error.message);
-    return res.status(500).json({ error: error.message });
   }
+
+  return res.status(500).json({ error: `All Gemini model attempts failed. Last error: ${lastError}` });
 }
