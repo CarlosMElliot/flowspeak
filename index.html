@@ -147,7 +147,7 @@
     .tabs { display:flex; gap:8px; border-bottom:1px solid var(--line); margin-bottom:22px; overflow:auto; }
     .tab { appearance:none; border:0; background:transparent; color:var(--muted); padding:10px 16px 14px; cursor:pointer; white-space:nowrap; font-size:14px; transition: color 0.2s; }
     .tab.active { color:var(--ink); border-bottom:2px solid var(--pine); font-weight:600; }
-    .tab.locked { opacity:.4; cursor:not-allowed; }
+    .tab.locked { opacity:.4; cursor:not-allowed; pointer-events: none; }
     .panel { display:none; }
     .panel.active { display:block; animation:in .25s ease; } 
     @keyframes in { from {opacity:0; transform:translateY(4px)} to {opacity:1;transform:none} }
@@ -157,7 +157,7 @@
     .phase-step { flex:1; border:0; background:transparent; color:var(--muted); border-bottom:2px solid var(--line); padding:8px 4px; text-align:left; font:500 11px "DM Mono"; letter-spacing:.4px; cursor:pointer; }
     .phase-step.active { border-color:var(--pine); color:var(--pine); font-weight: 600; }
     .phase-step.done { border-color:var(--gold); color:var(--ink); }
-    .phase-step.locked { opacity: 0.45; cursor: not-allowed; }
+    .phase-step.locked { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
     
     .phase { display:none; }
     .phase.active { display:block; animation:in .25s ease; }
@@ -191,7 +191,7 @@
     .mic.live { animation:pulse 1.15s infinite; } 
     @keyframes pulse { 50% { box-shadow:0 0 0 12px rgba(237,114,91,.2); } }
     .record-time { font:500 16px "DM Mono"; margin:10px 0 4px; }
-    .record-hint { color:var(--muted); font-size:12px; margin:0; }
+    .record-hint { color:var(--muted); font-size:12px; margin:0; line-height: 1.4; }
     .attempts { margin-top:14px; max-height: 180px; overflow-y: auto; }
     .attempt { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line); font-size:12px; }
     .attempt audio { height:26px; flex:1; min-width:0; }
@@ -225,7 +225,6 @@
     .prompt-card h2,.analysis-card h2,.shadow h2,.feedback-report h2 { margin:4px 0 8px; font:600 22px "Playfair Display"; }
     .prompt-card p,.analysis-card p,.shadow p,.feedback-report p { color:var(--muted); line-height:1.45; font-size:13px; }
     
-    /* Strictly Read-Only Script Box styling */
     .analysis-card textarea[readonly] { 
       width:100%; 
       min-height:120px; 
@@ -244,7 +243,7 @@
     .save-note { color:var(--pine); font-size:12px; min-height:16px; margin:6px 0 0; }
 
     .feedback-report { margin-top:16px; }
-    .report-head { display:flex; justify-between:space-between; align-items:start; gap:12px; }
+    .report-head { display:flex; justify-content:space-between; align-items:start; gap:12px; }
     .grade { color:var(--pine); font:600 38px "Playfair Display"; line-height: 1; }
     .grade small { font:500 11px "DM Mono"; color:var(--muted); display: block; margin-top: 2px; }
     .score-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 18px; }
@@ -275,10 +274,10 @@
     td { padding:8px; border-bottom:1px solid var(--soft); } 
     td:last-child { font-weight:700; }
 
-    /* Shadow Linear Progress Box */
     .shadow { max-width:820px; }
     .phrase { padding:18px 20px; background:var(--soft); border-radius:10px; margin:16px 0; font:600 19px/1.4 "Playfair Display"; border-left: 4px solid var(--pine); transition: all 0.3s ease; }
     .phrase.completed { text-decoration: line-through; opacity: 0.55; border-left-color: var(--gold); }
+    .phrase.uncorrected { border-left-color: #10b981; }
     .repeat { display:flex; gap:12px; align-items:center; flex-wrap: wrap; margin-top: 16px; }
     .repeat-dots { display:flex; gap:6px; }
     .repeat-dots i { width:20px; height:20px; border-radius:50%; background:var(--line); transition: background 0.2s; }
@@ -288,13 +287,13 @@
       background: #f0fdf4;
       border: 1px solid #bbf7d0;
       color: #166534;
-      padding: 16px;
+      padding: 18px;
       border-radius: 10px;
       margin-top: 16px;
       text-align: center;
     }
-    .shadow-banner h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
-    .shadow-banner p { margin: 0; font-size: 13px; }
+    .shadow-banner h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+    .shadow-banner p { margin: 0 0 14px; font-size: 13px; color: #15803d; }
 
     .empty { color:var(--muted); text-align:center; padding:32px 16px; font-size: 13px; } 
     .live-script { text-align:left; margin:12px 0 0; padding:12px; min-height:48px; border-radius:8px; background:#fff; color:var(--ink); font-size:13px; line-height:1.5; border: 1px solid var(--line); font-family: "DM Sans", sans-serif; }
@@ -312,8 +311,12 @@
       padding: 14px 16px;
       margin-bottom: 12px;
     }
-    .correction-pair .orig { color: var(--muted); text-decoration: line-through; font-size: 13px; margin-bottom: 6px; }
+    .correction-pair.valid-english { border-left: 4px solid #10b981; }
+    .correction-pair.gibberish-alert { border-left: 4px solid var(--coral); background: #fff5f3; }
+    .correction-pair .orig { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .correction-pair .orig.has-error { text-decoration: line-through; }
     .correction-pair .sug { color: var(--pine); font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+    .correction-pair .sug.perfect { color: #059669; }
     .correction-pair .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
     .hidden { display:none!important; }
@@ -421,7 +424,7 @@
           <h2>Configure session &amp; study the topic.</h2>
           <p class="desc">Customize your training settings, generate or select a question, and formulate your strategy before stepping up to speak.</p>
           
-          <div class="session-settings">
+          <div class="session-settings" id="setupSettingsGrid">
             <div class="setting-group">
               <label for="attemptGoal">Attempts today</label>
               <select id="attemptGoal">
@@ -507,7 +510,7 @@
           <h2>Warm up without the pressure.</h2>
           <p class="desc">Speak continuously for the selected duration. Complete three rounds, then proceed to your recorded attempt.</p>
           
-          <p class="reference">Selected Question</p>
+          <p class="reference">Selected Question (Locked for session)</p>
           <div class="reference-question" id="rehearsalQuestion"></div>
           
           <div class="timer">
@@ -529,7 +532,7 @@
           <h2>Say it. Listen. Refine your delivery.</h2>
           <p class="desc">A recorded take unlocks AI coaching analysis. Speak into your microphone to capture your exact words.</p>
           
-          <p class="reference">Selected Question</p>
+          <p class="reference">Selected Question (Locked for session)</p>
           <div class="reference-question" id="recordQuestion"></div>
           
           <div class="record-box">
@@ -543,7 +546,6 @@
           
           <div class="button-row" style="margin-top:16px">
             <button class="button coral" id="openFeedback" disabled>Unlock AI Feedback</button>
-            <button class="button secondary" id="backToQuestion">Change question / settings</button>
           </div>
         </article>
       </div>
@@ -597,11 +599,11 @@
           <div class="score-strip" id="reportScores"></div>
           <div class="finding-grid" id="findingGrid"></div>
           
-          <h3 style="font:600 18px 'Playfair Display'; margin:20px 0 10px;">Sentence-by-Sentence Script Corrections</h3>
+          <h3 style="font:600 18px 'Playfair Display'; margin:20px 0 10px;">Sentence-by-Sentence Script Analysis</h3>
           <div id="sentenceCorrectionsList"></div>
           
           <div class="button-row" style="margin-top:22px">
-            <button class="button coral" id="saveReport">Save Score &amp; Start New Take</button>
+            <button class="button coral" id="saveReport">Save Score to Progress</button>
             <button class="button secondary" id="useShadow">Practice Script Sentences in Shadow Box →</button>
             <button class="button secondary" id="downloadReport">Download Text Report</button>
           </div>
@@ -688,13 +690,17 @@
 
           <div id="shadowCompleteBanner" class="shadow-banner hidden">
             <h3>🎉 Script Shadowing Complete!</h3>
-            <p>You have successfully shadowed and crossed out all corrected sentences from your script.</p>
+            <p>You have successfully shadowed and completed all sentences from your script.</p>
+            <div class="button-row" style="justify-content: center; margin-top: 12px;">
+              <button class="button coral" id="finishAndHome">Finish Session &amp; Return Home</button>
+              <button class="button secondary" id="finishAndNewQuestion">Start Next Practice Session →</button>
+            </div>
           </div>
         </div>
 
         <div id="shadowEmptyNotice" class="empty hidden">
-          <p style="font-size: 15px; font-weight: 600; color: var(--pine); margin-bottom: 4px;">Not Enough Script Data Captured</p>
-          <p>Speech recognition requires clear audio. Record a take where you speak into your microphone to generate custom shadowing sentences.</p>
+          <p style="font-size: 15px; font-weight: 600; color: var(--pine); margin-bottom: 4px;">Not Enough Valid Script Data Captured</p>
+          <p>Speech recognition requires clear spoken English. Record a take where you speak clearly to generate custom shadowing sentences.</p>
         </div>
       </article>
     </section>
@@ -736,6 +742,7 @@
     let attemptGoal = 10;
     let currentReport = null;
     let practiceUnlocked = false;
+    let sessionLocked = false;
     let unlockedPhase = 1;
 
     const $ = id => document.getElementById(id);
@@ -789,6 +796,7 @@
     };
 
     function chooseQuestion() {
+      if (sessionLocked) return;
       const level = $('questionLevel').value;
       const theme = $('questionTheme').value;
       let options = questions.filter(q => (q.level === level || level === 'Reflective') && (q.theme === theme || theme === 'Any'));
@@ -822,11 +830,16 @@
         const p = Number(b.dataset.phase);
         b.classList.toggle('active', p === n);
         b.classList.toggle('done', p < n);
-        b.classList.toggle('locked', p > unlockedPhase);
+        b.classList.toggle('locked', p > unlockedPhase || (sessionLocked && p < unlockedPhase));
       });
     }
 
+    // Lock session into strict linear process once rehearsal begins
     $('beginRehearsal').onclick = () => {
+      sessionLocked = true;
+      $('newQuestion').disabled = true;
+      $('setupSettingsGrid').style.opacity = '0.6';
+      $('setupSettingsGrid').style.pointerEvents = 'none';
       unlockedPhase = Math.max(unlockedPhase, 2);
       $('stepBtn2').classList.remove('locked');
       showPhase(2);
@@ -839,15 +852,6 @@
       $('stepBtn3').classList.remove('locked');
       showPhase(3);
     };
-
-    $('backToQuestion').onclick = () => showPhase(1);
-
-    document.querySelectorAll('.phase-step').forEach(b => {
-      b.onclick = () => {
-        const p = Number(b.dataset.phase);
-        if (p <= unlockedPhase) showPhase(p);
-      };
-    });
 
     function renderRounds() {
       [...$('rounds').children].forEach((x, i) => x.className = i < rehearsal ? 'done' : i === rehearsal ? 'now' : '');
@@ -929,7 +933,7 @@
       updateProgress();
     }
 
-    // Real-Time Speech Recognition Engine
+    // Web Speech API Engine
     function beginTranscription() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       liveTranscript = '';
@@ -1037,9 +1041,13 @@
 
     $('attemptPicker').onchange = e => loadAttempt(e.target.value);
 
-    // Parsing & Analyzing User's Verbatim Script ONLY
+    // English Verifier & Natural Speech Check
+    function isMeaningfulEnglishWord(w) {
+      const commonVowels = /[aeiouy]/i;
+      return w.length >= 1 && commonVowels.test(w) && !/(.)\1{3,}/.test(w);
+    }
+
     function analyzeScriptSentences(rawScript) {
-      // Split strictly by punctuation or natural clauses
       const rawSentences = rawScript.match(/[^.!?]+[.!?]+/g) || [rawScript];
       const parsedItems = [];
 
@@ -1047,24 +1055,48 @@
         const cleanOriginal = s.trim();
         if (!cleanOriginal || cleanOriginal.startsWith("No speech detected")) return;
 
+        const words = cleanOriginal.split(/\s+/);
+        const validWords = words.filter(isMeaningfulEnglishWord);
+        const validRatio = validWords.length / words.length;
+
+        // Check for Gibberish
+        if (validRatio < 0.5 || words.length < 2) {
+          parsedItems.push({
+            original: cleanOriginal,
+            corrected: cleanOriginal,
+            suggestion: "⚠️ Unrecognized / Non-Standard Speech Pattern — Speak clearly in English.",
+            isGibberish: true,
+            needsCorrection: false,
+            completed: false
+          });
+          return;
+        }
+
         let corrected = cleanOriginal;
         let suggestion = "";
+        let needsCorrection = false;
 
         if (/\b(um|uh|like|you know|basically)\b/i.test(corrected)) {
           corrected = corrected.replace(/\b(um|uh|like|you know|basically),?\s*/gi, '').trim();
           corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
-          suggestion = "Remove filler words to increase clarity.";
+          suggestion = "Removed filler words to increase clarity.";
+          needsCorrection = true;
         } else if (/\b(i think|i believe)\b/i.test(corrected)) {
           corrected = corrected.replace(/\bi think\b/gi, "I am convinced that").replace(/\bi believe\b/gi, "From my experience,");
-          suggestion = "Use a stronger opening phrase to state your opinion firmly.";
+          suggestion = "Enhanced with stronger opinion phrasing.";
+          needsCorrection = true;
         } else {
-          suggestion = "Grammatically clear sentence structure.";
+          // Accurate English - Do NOT apply fake corrections or cross out
+          suggestion = "✓ Natural English — No correction required.";
+          needsCorrection = false;
         }
 
         parsedItems.push({
           original: cleanOriginal,
           corrected: corrected,
           suggestion: suggestion,
+          isGibberish: false,
+          needsCorrection: needsCorrection,
           completed: false
         });
       });
@@ -1079,14 +1111,20 @@
       const fillers = lower.match(/\b(um+|uh+|like|you know|actually|basically)\b/g) || [];
       const wpm = Math.round(words.length / (seconds / 60)) || 120;
       
-      const fluency = Math.max(60, Math.min(96, 92 - fillers.length * 5));
-      const grammar = Math.max(68, Math.min(95, 88));
-      const vocabulary = Math.max(65, Math.min(94, 72 + new Set(words).size / 1.5));
-      const pronunciation = Math.max(70, Math.min(92, 84));
+      const sentenceAnalysis = analyzeScriptSentences(text);
+      const hasGibberish = sentenceAnalysis.some(s => s.isGibberish);
+
+      let fluency = Math.max(40, Math.min(96, 92 - fillers.length * 5));
+      let grammar = Math.max(40, Math.min(95, 88));
+      let vocabulary = Math.max(40, Math.min(94, 72 + new Set(words).size / 1.5));
+      let pronunciation = Math.max(50, Math.min(92, 84));
+
+      if (hasGibberish) {
+        fluency = 45; grammar = 40; vocabulary = 40; pronunciation = 50;
+      }
+
       const hesitations = Math.min(35, fillers.length * 7);
       const overall = Math.round((fluency + grammar + vocabulary + pronunciation + (100 - hesitations)) / 5);
-
-      const sentenceAnalysis = analyzeScriptSentences(text);
 
       return {
         fluency, grammar, vocabulary, pronunciation, hesitations, overall,
@@ -1108,23 +1146,24 @@
       $('findingGrid').innerHTML = `
         <div class="finding"><small>Speaking Pace</small><b>${r.wpm} WPM</b><p>${r.wpm < 110 ? 'Pace is cautious. Practice linking your words smoothly.' : 'Good conversational pacing.'}</p></div>
         <div class="finding"><small>Fillers Detected</small><b>${r.fillers.length} Found</b><p>${r.fillers.length ? `Detected: "${[...new Set(r.fillers)].join(', ')}". Pause silently instead.` : 'Clean delivery without major fillers!'}</p></div>
-        <div class="finding"><small>Script Sentences</small><b>${r.sentences.length} Parsed</b><p>Sentences extracted for linear shadow practice.</p></div>
+        <div class="finding"><small>Script Status</small><b>${r.sentences.some(s => s.isGibberish) ? 'Unrecognized Speech' : 'English Verified'}</b><p>${r.sentences.some(s => s.isGibberish) ? 'Some phrases could not be matched to standard English.' : 'Transcript verified as natural English speech.'}</p></div>
       `;
 
       const correctionsContainer = $('sentenceCorrectionsList');
       if (r.sentences.length) {
         correctionsContainer.innerHTML = r.sentences.map((item, idx) => `
-          <div class="correction-pair">
-            <div class="orig">Original: "${item.original}"</div>
-            <div class="sug">Corrected Phrasing: "${item.corrected}"</div>
+          <div class="correction-pair ${item.isGibberish ? 'gibberish-alert' : (!item.needsCorrection ? 'valid-english' : '')}">
+            <div class="orig ${item.needsCorrection ? 'has-error' : ''}">Original: "${item.original}"</div>
+            <div class="sug ${!item.needsCorrection ? 'perfect' : ''}">${item.needsCorrection ? `Suggested: "${item.corrected}"` : `Verified: "${item.original}"`}</div>
             <div class="why">💡 ${item.suggestion}</div>
           </div>
         `).join('');
       } else {
-        correctionsContainer.innerHTML = `<p class="empty">No valid sentences found in script to correct.</p>`;
+        correctionsContainer.innerHTML = `<p class="empty">No valid spoken sentences captured in transcript to analyze.</p>`;
       }
 
-      scriptSentencesQueue = r.sentences;
+      // Filter out gibberish sentences for shadow queue
+      scriptSentencesQueue = r.sentences.filter(s => !s.isGibberish);
       currentShadowIndex = 0;
       updateShadowTabState();
     }
@@ -1143,8 +1182,8 @@
       scores.push({ ...currentReport });
       localStorage.setItem('flowspeak-scores', JSON.stringify(scores));
       renderScores();
-      switchTab('practice');
-      showPhase(1);
+      $('saveReport').disabled = true;
+      $('saveReport').textContent = '✓ Score Saved to Progress';
     };
 
     $('downloadReport').onclick = () => {
@@ -1158,7 +1197,7 @@
       textContent += `VERBATIM SCRIPT:\n"${r.text}"\n\n`;
       textContent += `SENTENCE CORRECTIONS & SUGGESTIONS:\n`;
       r.sentences.forEach((s, idx) => {
-        textContent += `${idx + 1}. Original: "${s.original}"\n   Correction: "${s.corrected}"\n   Note: ${s.suggestion}\n\n`;
+        textContent += `${idx + 1}. Original: "${s.original}"\n   Result: "${s.corrected}"\n   Note: ${s.suggestion}\n\n`;
       });
 
       const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
@@ -1237,7 +1276,7 @@
     }
     renderScores();
 
-    // Strict Linear Shadow Correction Flow
+    // Linear Shadow Correction Engine
     function updateShadowTabState() {
       const shadowTab = $('shadowTab');
       const contentArea = $('shadowContentArea');
@@ -1262,12 +1301,12 @@
       
       preview.textContent = `"${item.corrected}"`;
       preview.classList.toggle('completed', item.completed);
+      preview.classList.toggle('uncorrected', !item.needsCorrection);
 
       $('shadowCounter').textContent = `Script Sentence ${currentShadowIndex + 1} of ${scriptSentencesQueue.length}`;
       repeats = item.completed ? 5 : 0;
       renderRepeats();
 
-      // Check if all sentences are complete
       const allDone = scriptSentencesQueue.every(s => s.completed);
       $('shadowCompleteBanner').classList.toggle('hidden', !allDone);
     }
@@ -1276,7 +1315,7 @@
       [...$('repeatDots').children].forEach((x, i) => x.className = i < repeats ? 'done' : '');
       const item = scriptSentencesQueue[currentShadowIndex];
       if (item && item.completed) {
-        $('repeatButton').textContent = '✓ Sentence Completed & Crossed Out';
+        $('repeatButton').textContent = '✓ Sentence Completed';
       } else {
         $('repeatButton').textContent = `Mark Repetition (${repeats}/5)`;
       }
@@ -1292,7 +1331,6 @@
           item.completed = true;
           renderCurrentShadowSentence();
 
-          // Automatically advance linearly to next sentence if available
           if (currentShadowIndex < scriptSentencesQueue.length - 1) {
             setTimeout(() => {
               currentShadowIndex++;
@@ -1311,6 +1349,42 @@
       }
       repeats = 0; 
       renderCurrentShadowSentence(); 
+    };
+
+    // Shadow Completion Redirect Actions
+    function resetFullSession() {
+      sessionLocked = false;
+      attempts = [];
+      scriptSentencesQueue = [];
+      currentShadowIndex = 0;
+      rehearsal = 0;
+      unlockedPhase = 1;
+      
+      $('newQuestion').disabled = false;
+      $('setupSettingsGrid').style.opacity = '1';
+      $('setupSettingsGrid').style.pointerEvents = 'auto';
+      $('saveReport').disabled = false;
+      $('saveReport').textContent = 'Save Score to Progress';
+
+      $('feedbackTab').classList.add('locked');
+      $('reportTab').classList.add('locked');
+      $('shadowTab').classList.add('locked');
+
+      renderRounds();
+      renderAttempts();
+      updateShadowTabState();
+    }
+
+    $('finishAndHome').onclick = () => {
+      resetFullSession();
+      switchTab('home');
+    };
+
+    $('finishAndNewQuestion').onclick = () => {
+      resetFullSession();
+      chooseQuestion();
+      switchTab('practice');
+      showPhase(1);
     };
 
     updateShadowTabState();
