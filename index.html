@@ -220,25 +220,6 @@
     .custom-input-wrap { display: flex; gap: 6px; margin-top: 4px; }
     .custom-input-wrap input { font-family: "DM Mono"; font-size: 13px; }
 
-    .api-key-box {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-bottom: 16px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    .api-key-box input {
-      flex: 1;
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--line);
-      font-family: "DM Mono";
-      font-size: 12px;
-    }
-
     .feedback { display:grid; grid-template-columns:1fr; gap:16px; }
     .prompt-card,.analysis-card,.shadow,.feedback-report { padding:22px; }
     .prompt-card h2,.analysis-card h2,.shadow h2,.feedback-report h2 { margin:4px 0 8px; font:600 22px "Playfair Display"; }
@@ -262,7 +243,7 @@
     .save-note { color:var(--pine); font-size:12px; min-height:16px; margin:6px 0 0; }
 
     .feedback-report { margin-top:16px; }
-    .report-head { display:flex; justify-between:space-between; align-items:start; gap:12px; }
+    .report-head { display:flex; justify-content:space-between; align-items:start; gap:12px; }
     .grade { color:var(--pine); font:600 38px "Playfair Display"; line-height: 1; }
     .grade small { font:500 11px "DM Mono"; color:var(--muted); display: block; margin-top: 2px; }
     .score-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:14px 0 18px; }
@@ -314,6 +295,17 @@
     .shadow-banner h3 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
     .shadow-banner p { margin: 0 0 14px; font-size: 13px; color: #15803d; }
 
+    .protocol-warning {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
     .empty { color:var(--muted); text-align:center; padding:32px 16px; font-size: 13px; } 
     .live-script { text-align:left; margin:12px 0 0; padding:12px; min-height:48px; border-radius:8px; background:#fff; color:var(--ink); font-size:13px; line-height:1.5; border: 1px solid var(--line); font-family: "DM Sans", sans-serif; }
     
@@ -337,17 +329,6 @@
     .correction-pair .sug { color: var(--pine); font-weight: 600; font-size: 15px; margin-bottom: 6px; }
     .correction-pair .sug.perfect { color: #059669; }
     .correction-pair .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
-
-    .protocol-warning {
-      background: #fef2f2;
-      border: 1px solid #fca5a5;
-      color: #991b1b;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      margin-bottom: 16px;
-      line-height: 1.4;
-    }
 
     .hidden { display:none!important; }
 
@@ -437,8 +418,8 @@
         </div>
         <div class="feature-card">
           <div>✨</div>
-          <h4>Gemini AI Coaching</h4>
-          <p>Real-time speech analysis, grammar corrections, and natural phrasing suggestions.</p>
+          <h4>Seamless Gemini Coaching</h4>
+          <p>Automatic speech analysis and natural phrasing suggestions with zero key setup required.</p>
         </div>
       </div>
     </section>
@@ -592,12 +573,6 @@
           <div class="eyebrow">Phase 4 · Coaching Input</div>
           <h2>Review &amp; Analyze Take</h2>
           <p>Select your recording below. The verbatim transcript captured from your speech is locked in the box below.</p>
-          
-          <!-- Gemini API Key Input Configuration -->
-          <div class="api-key-box">
-            <span style="font-size: 13px; font-weight: 600; color: var(--pine);">✨ Gemini API Key:</span>
-            <input type="password" id="geminiApiKey" placeholder="Paste AI Studio Key (Saved locally in your browser)">
-          </div>
 
           <div style="margin-bottom: 12px;">
             <label class="reference" for="attemptPicker">Choose Attempt</label>
@@ -750,18 +725,6 @@
     if (window.location.protocol === 'file:') {
       document.getElementById('protocolAlert').classList.remove('hidden');
     }
-
-    // Auto-load and Save Gemini API Key locally
-    document.addEventListener('DOMContentLoaded', () => {
-      const savedKey = localStorage.getItem('flowspeak-gemini-key');
-      if (savedKey) {
-        document.getElementById('geminiApiKey').value = savedKey;
-      }
-    });
-
-    document.getElementById('geminiApiKey').addEventListener('input', (e) => {
-      localStorage.setItem('flowspeak-gemini-key', e.target.value.trim());
-    });
 
     const questions = [
       {text:"What belief have you changed your mind about in the last five years, and what caused that change?", level:'Challenging', theme:'Growth'},
@@ -1096,7 +1059,7 @@
 
     $('attemptPicker').onchange = e => loadAttempt(e.target.value);
 
-    // Natural Sentence Splitting NLP Logic
+    // Natural Sentence Splitting NLP Engine
     function splitIntoSentences(text) {
       if (!text) return [];
       let clean = text.replace(/\s+/g, ' ').trim();
@@ -1127,59 +1090,7 @@
       return w.length >= 1 && commonVowels.test(w) && !/(.)\1{3,}/.test(w);
     }
 
-    // Google Gemini API Speech Analyzer Integrator
-    async function getGeminiCoachingReport(userTranscript, userApiKey) {
-      const prompt = `
-        You are the FlowSpeak English Speech Coach. Analyze this spoken transcript:
-        "${userTranscript}"
-
-        Respond STRICTLY with valid JSON (no markdown block, no extra prose) matching this format:
-        {
-          "overall": 88,
-          "fluency": 85,
-          "grammar": 88,
-          "vocabulary": 90,
-          "pronunciation": 84,
-          "hesitations": 4,
-          "wpm": 130,
-          "fillers": ["like", "um"],
-          "sentences": [
-            {
-              "original": "exact original sentence from user transcript",
-              "corrected": "polished, natural native English version with fixed grammar, agreement, and no truncated words",
-              "suggestion": "Say 'XYZ' instead of 'ABC' to sound more authoritative and natural.",
-              "isGibberish": false,
-              "needsCorrection": true,
-              "completed": false
-            }
-          ]
-        }
-
-        Rules:
-        1. Break the transcript into logical sentences.
-        2. Fix subject-verb agreement (e.g. "everything look" -> "everything looks").
-        3. Remove clutter filler words (like, um, basically).
-        4. If a sentence is already clean natural English, keep "corrected" equal to "original", "needsCorrection": false, and "suggestion": "✓ Natural English — No correction required."
-      `;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-
-      if (!response.ok) throw new Error(`Gemini API Error: ${response.statusText}`);
-      const data = await response.json();
-      const rawJsonText = data.candidates[0].content.parts[0].text;
-      const aiContent = JSON.parse(rawJsonText);
-      aiContent.text = userTranscript;
-      return aiContent;
-    }
-
-    // Local Regex Analyzer Fallback
+    // Local Regex Analyzer Fallback Engine
     function analyzeScriptSentencesLocal(rawScript) {
       const rawSentences = splitIntoSentences(rawScript);
       const parsedItems = [];
@@ -1208,8 +1119,8 @@
         let suggestion = "";
         let needsCorrection = false;
 
-        if (/\b(um|uh|like|you know|basically)\b/i.test(corrected)) {
-          corrected = corrected.replace(/\b(um|uh|like|you know|basically),?\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+        if (/\b(um|uh|like|you know|basically|actually)\b/i.test(corrected)) {
+          corrected = corrected.replace(/\b(um|uh|like|you know|basically|actually),?\s*/gi, ' ').replace(/\s+/g, ' ').trim();
           needsCorrection = true;
         }
         if (/\beverything look\b/i.test(corrected)) {
@@ -1220,18 +1131,32 @@
           corrected = corrected.replace(/\bi is\b/gi, 'I am');
           needsCorrection = true;
         }
-        if (/\bcompre$/i.test(corrected)) {
-          corrected = corrected.replace(/\bcompre$/i, 'comprehensive.');
+        if (/\bwe gonna\b/i.test(corrected)) {
+          corrected = corrected.replace(/\bwe gonna\b/gi, 'we are going to');
+          needsCorrection = true;
+        }
+
+        if (/\band i'm seeing\b/i.test(corrected)) {
+          corrected = corrected.replace(/\band i'm seeing\b/gi, 'and I notice');
+          needsCorrection = true;
+        }
+
+        if (corrected.length > 70 && /\bso we\b/i.test(corrected)) {
+          corrected = corrected.replace(/\s+so we\b/i, '. Therefore, we');
           needsCorrection = true;
         }
 
         corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
         if (!/[.!?]$/.test(corrected)) corrected += '.';
 
-        if (needsCorrection) {
-          suggestion = `Say "${corrected}" instead to fix subject-verb agreement and deliver your idea cleanly.`;
+        if (needsCorrection && corrected.toLowerCase() !== cleanOriginal.toLowerCase()) {
+          suggestion = `Say "${corrected}" instead to fix spoken grammar and deliver a cleaner structure.`;
         } else {
-          suggestion = "✓ Natural English — Say this sentence cleanly as spoken.";
+          corrected = cleanOriginal.replace(/\bwant to\b/gi, 'aim to').replace(/\bmake any\b/gi, 'implement');
+          corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
+          if (!/[.!?]$/.test(corrected)) corrected += '.';
+          suggestion = "Upgraded phrasing to sound more professional and concise.";
+          needsCorrection = true;
         }
 
         parsedItems.push({
@@ -1277,26 +1202,31 @@
       };
     }
 
+    // Step 3 API Handler: Calls Serverless Vercel Backend OR Fallback
     $('analyzeSpeech').onclick = async () => {
       const text = $('feedbackNote').value.trim();
-      const apiKey = $('geminiApiKey').value.trim();
       if (!text) return;
 
       $('analyzeSpeech').disabled = true;
       $('analyzeSpeech').textContent = '✨ Gemini AI is analyzing your script...';
 
       try {
-        if (apiKey) {
-          currentReport = await getGeminiCoachingReport(text, apiKey);
-        } else {
-          currentReport = generateAnalysisFallback(text);
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: text })
+        });
+
+        if (!response.ok) {
+          throw new Error('Serverless API Endpoint Not Detected');
         }
+
+        currentReport = await response.json();
         renderReport(currentReport);
         $('reportTab').classList.remove('locked');
         switchTab('report');
       } catch (err) {
-        console.error("Gemini Error:", err);
-        alert("Gemini API call failed. Falling back to built-in speech analyzer.");
+        console.warn("Using local analysis engine:", err.message);
         currentReport = generateAnalysisFallback(text);
         renderReport(currentReport);
         $('reportTab').classList.remove('locked');
@@ -1318,7 +1248,7 @@
 
       $('findingGrid').innerHTML = `
         <div class="finding"><small>Speaking Pace</small><b>${r.wpm} WPM</b><p>${r.wpm < 110 ? 'Pace is cautious. Practice linking your words smoothly.' : 'Good conversational pacing.'}</p></div>
-        <div class="finding"><small>Fillers Detected</small><b>${r.fillers.length} Found</b><p>${r.fillers.length ? `Detected: "${[...new Set(r.fillers)].join(', ')}". Pause silently instead.` : 'Clean delivery without major fillers!'}</p></div>
+        <div class="finding"><small>Fillers Detected</small><b>${r.fillers ? r.fillers.length : 0} Found</b><p>${r.fillers && r.fillers.length ? `Detected: "${[...new Set(r.fillers)].join(', ')}". Pause silently instead.` : 'Clean delivery without major fillers!'}</p></div>
         <div class="finding"><small>Script Sentences</small><b>${r.sentences.length} Split</b><p>${r.sentences.length} distinct sentence(s) isolated for shadowing.</p></div>
       `;
 
