@@ -319,6 +319,17 @@
     .correction-pair .sug.perfect { color: #059669; }
     .correction-pair .why { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
+    .protocol-warning {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
     .hidden { display:none!important; }
 
     @media(max-width:760px) { 
@@ -342,12 +353,16 @@
       <div class="brand">Flow<b>Speak</b></div>
     </nav>
 
+    <div id="protocolAlert" class="protocol-warning hidden">
+      ⚠️ <b>Local File System Detected:</b> Browsers disable real-time Speech Recognition when opening files directly via <code>file:///</code>. Please open this file through <b>VS Code Live Server</b> or run <code>http://localhost</code> so speech transcription can capture your voice.
+    </div>
+
     <div class="tabs" role="tablist">
       <button class="tab active" data-tab="home">Home</button>
       <button class="tab locked" data-tab="practice" id="practiceTab">Practice</button>
       <button class="tab locked" data-tab="feedback" id="feedbackTab">AI feedback</button>
       <button class="tab locked" data-tab="report" id="reportTab">Coaching report</button>
-      <button class="tab" data-tab="progress">Progress</button>
+      <button class="tab" data-tab="progress" id="progressTab">Progress</button>
       <button class="tab locked" data-tab="shadow" id="shadowTab">Shadow correction</button>
     </div>
 
@@ -707,6 +722,10 @@
   </main>
 
   <script>
+    if (window.location.protocol === 'file:') {
+      document.getElementById('protocolAlert').classList.remove('hidden');
+    }
+
     const questions = [
       {text:"What belief have you changed your mind about in the last five years, and what caused that change?", level:'Challenging', theme:'Growth'},
       {text:"If memories could be edited, should governments ever regulate that technology?", level:'Advanced', theme:'Technology'},
@@ -817,6 +836,10 @@
     $('startPractice').onclick = () => {
       practiceUnlocked = true;
       $('practiceTab').classList.remove('locked');
+      
+      // Lock Progress Tab during active session
+      $('progressTab').classList.add('locked');
+      
       switchTab('practice');
       showPhase(1);
     };
@@ -834,7 +857,6 @@
       });
     }
 
-    // Lock session into strict linear process once rehearsal begins
     $('beginRehearsal').onclick = () => {
       sessionLocked = true;
       $('newQuestion').disabled = true;
@@ -933,7 +955,6 @@
       updateProgress();
     }
 
-    // Web Speech API Engine
     function beginTranscription() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       liveTranscript = '';
@@ -1041,14 +1062,48 @@
 
     $('attemptPicker').onchange = e => loadAttempt(e.target.value);
 
-    // English Verifier & Natural Speech Check
+    // Advanced Natural Sentence Splitting NLP Function
+    function splitIntoSentences(text) {
+      if (!text) return [];
+      
+      // Clean up whitespace & linebreaks
+      let clean = text.replace(/\s+/g, ' ').trim();
+      
+      // Regex splits on punctuation marks (. ! ?) followed by capital letters or spaces,
+      // while preserving common speech contractions and abbreviations (e.g., Mr., Dr., vs., etc.)
+      const rawMatches = clean.match(/(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|vs|st)\.)(?<=[.!?])\s+(?=[A-Z0-9])|(?<=[.!?])$/g);
+      
+      if (!rawMatches) {
+        // Fallback split on natural punctuation or long clauses
+        return clean.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+      }
+
+      // Perform boundary slice
+      const sentences = [];
+      let lastIdx = 0;
+      
+      const regex = /(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|vs|st)\.)(?<=[.!?])\s+(?=[A-Z0-9])/g;
+      let match;
+      while ((match = regex.exec(clean)) !== null) {
+        const sentence = clean.substring(lastIdx, match.index).trim();
+        if (sentence.length > 0) sentences.push(sentence);
+        lastIdx = regex.lastIndex;
+      }
+      
+      const lastSentence = clean.substring(lastIdx).trim();
+      if (lastSentence.length > 0) sentences.push(lastSentence);
+
+      return sentences;
+    }
+
     function isMeaningfulEnglishWord(w) {
       const commonVowels = /[aeiouy]/i;
       return w.length >= 1 && commonVowels.test(w) && !/(.)\1{3,}/.test(w);
     }
 
     function analyzeScriptSentences(rawScript) {
-      const rawSentences = rawScript.match(/[^.!?]+[.!?]+/g) || [rawScript];
+      // Split paragraph into distinct sentences
+      const rawSentences = splitIntoSentences(rawScript);
       const parsedItems = [];
 
       rawSentences.forEach(s => {
@@ -1059,12 +1114,11 @@
         const validWords = words.filter(isMeaningfulEnglishWord);
         const validRatio = validWords.length / words.length;
 
-        // Check for Gibberish
         if (validRatio < 0.5 || words.length < 2) {
           parsedItems.push({
             original: cleanOriginal,
             corrected: cleanOriginal,
-            suggestion: "⚠️ Unrecognized / Non-Standard Speech Pattern — Speak clearly in English.",
+            suggestion: "⚠️ Unrecognized Speech — Speak clearly in standard English.",
             isGibberish: true,
             needsCorrection: false,
             completed: false
@@ -1076,18 +1130,26 @@
         let suggestion = "";
         let needsCorrection = false;
 
+        // "Say this instead of that" Rule Engine
         if (/\b(um|uh|like|you know|basically)\b/i.test(corrected)) {
           corrected = corrected.replace(/\b(um|uh|like|you know|basically),?\s*/gi, '').trim();
           corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
-          suggestion = "Removed filler words to increase clarity.";
+          suggestion = "Say this instead of filler-cluttered phrasing to deliver your idea cleanly.";
           needsCorrection = true;
-        } else if (/\b(i think|i believe)\b/i.test(corrected)) {
-          corrected = corrected.replace(/\bi think\b/gi, "I am convinced that").replace(/\bi believe\b/gi, "From my experience,");
-          suggestion = "Enhanced with stronger opinion phrasing.";
+        } else if (/\bi think\b/i.test(corrected)) {
+          corrected = corrected.replace(/\bi think\b/gi, "I am convinced that");
+          suggestion = "Say 'I am convinced that...' instead of 'I think...' to sound more authoritative.";
+          needsCorrection = true;
+        } else if (/\bi believe\b/i.test(corrected)) {
+          corrected = corrected.replace(/\bi believe\b/gi, "From my experience,");
+          suggestion = "Say 'From my experience...' instead of 'I believe...' for a more natural intro.";
+          needsCorrection = true;
+        } else if (/\bvery good\b/i.test(corrected)) {
+          corrected = corrected.replace(/\bvery good\b/gi, "highly effective");
+          suggestion = "Say 'highly effective' instead of 'very good' to upgrade your vocabulary.";
           needsCorrection = true;
         } else {
-          // Accurate English - Do NOT apply fake corrections or cross out
-          suggestion = "✓ Natural English — No correction required.";
+          suggestion = "✓ Natural English — Say this sentence cleanly as spoken.";
           needsCorrection = false;
         }
 
@@ -1146,15 +1208,15 @@
       $('findingGrid').innerHTML = `
         <div class="finding"><small>Speaking Pace</small><b>${r.wpm} WPM</b><p>${r.wpm < 110 ? 'Pace is cautious. Practice linking your words smoothly.' : 'Good conversational pacing.'}</p></div>
         <div class="finding"><small>Fillers Detected</small><b>${r.fillers.length} Found</b><p>${r.fillers.length ? `Detected: "${[...new Set(r.fillers)].join(', ')}". Pause silently instead.` : 'Clean delivery without major fillers!'}</p></div>
-        <div class="finding"><small>Script Status</small><b>${r.sentences.some(s => s.isGibberish) ? 'Unrecognized Speech' : 'English Verified'}</b><p>${r.sentences.some(s => s.isGibberish) ? 'Some phrases could not be matched to standard English.' : 'Transcript verified as natural English speech.'}</p></div>
+        <div class="finding"><small>Script Sentences</small><b>${r.sentences.length} Split</b><p>${r.sentences.length} distinct sentence(s) isolated for shadowing.</p></div>
       `;
 
       const correctionsContainer = $('sentenceCorrectionsList');
       if (r.sentences.length) {
         correctionsContainer.innerHTML = r.sentences.map((item, idx) => `
           <div class="correction-pair ${item.isGibberish ? 'gibberish-alert' : (!item.needsCorrection ? 'valid-english' : '')}">
-            <div class="orig ${item.needsCorrection ? 'has-error' : ''}">Original: "${item.original}"</div>
-            <div class="sug ${!item.needsCorrection ? 'perfect' : ''}">${item.needsCorrection ? `Suggested: "${item.corrected}"` : `Verified: "${item.original}"`}</div>
+            <div class="orig ${item.needsCorrection ? 'has-error' : ''}">You Said: "${item.original}"</div>
+            <div class="sug ${!item.needsCorrection ? 'perfect' : ''}">${item.needsCorrection ? `Say This Instead: "${item.corrected}"` : `Verified: "${item.original}"`}</div>
             <div class="why">💡 ${item.suggestion}</div>
           </div>
         `).join('');
@@ -1162,7 +1224,6 @@
         correctionsContainer.innerHTML = `<p class="empty">No valid spoken sentences captured in transcript to analyze.</p>`;
       }
 
-      // Filter out gibberish sentences for shadow queue
       scriptSentencesQueue = r.sentences.filter(s => !s.isGibberish);
       currentShadowIndex = 0;
       updateShadowTabState();
@@ -1195,9 +1256,9 @@
       textContent += `Fluency: ${r.fluency} | Grammar: ${r.grammar} | Vocabulary: ${r.vocabulary} | Pronunciation: ${r.pronunciation}\n`;
       textContent += `Hesitations: ${r.hesitations} | Speaking Pace: ${r.wpm} WPM\n\n`;
       textContent += `VERBATIM SCRIPT:\n"${r.text}"\n\n`;
-      textContent += `SENTENCE CORRECTIONS & SUGGESTIONS:\n`;
+      textContent += `SENTENCE-BY-SENTENCE SUGGESTIONS:\n`;
       r.sentences.forEach((s, idx) => {
-        textContent += `${idx + 1}. Original: "${s.original}"\n   Result: "${s.corrected}"\n   Note: ${s.suggestion}\n\n`;
+        textContent += `${idx + 1}. You Said: "${s.original}"\n   Say This Instead: "${s.corrected}"\n   Note: ${s.suggestion}\n\n`;
       });
 
       const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
@@ -1351,7 +1412,7 @@
       renderCurrentShadowSentence(); 
     };
 
-    // Shadow Completion Redirect Actions
+    // Reset and Unlock Progress once Session is Completed
     function resetFullSession() {
       sessionLocked = false;
       attempts = [];
@@ -1369,6 +1430,9 @@
       $('feedbackTab').classList.add('locked');
       $('reportTab').classList.add('locked');
       $('shadowTab').classList.add('locked');
+      
+      // Unlock Progress Tab after session completion
+      $('progressTab').classList.remove('locked');
 
       renderRounds();
       renderAttempts();
